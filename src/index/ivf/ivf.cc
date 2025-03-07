@@ -313,6 +313,7 @@ class IvfIndexNode : public IndexNode {
     }
 
  private:
+    int numa_node_ = 1;
     // only support IVFFlat,IVFFlatCC, IVFSQ, IVFSQCC and SCANN
     // iterator will own the copied_norm_query
     // TODO: iterator should copy and own query data.
@@ -487,6 +488,11 @@ IvfIndexNode<DataType, IndexType>::TrainInternal(const DataSetPtr dataset, std::
             LOG_KNOWHERE_ERROR_ << rows << " rows is not enough, scann needs at least 16 rows to build index";
             return Status::faiss_inner_error;
         }
+    }
+
+    std::unique_ptr<NumaSetterGuard> numa_guard;
+    if (numa_node_ >= 0) {
+        numa_guard = std::make_unique<NumaSetterGuard>(numa_node_);
     }
 
     std::unique_ptr<IndexType> index;
@@ -673,6 +679,12 @@ IvfIndexNode<DataType, IndexType>::Add(const DataSetPtr dataset, std::shared_ptr
                           } else {
                               setter = std::make_unique<ThreadPool::ScopedBuildOmpSetter>();
                           }
+
+                          std::unique_ptr<NumaSetterGuard> numa_guard;
+                            if (numa_node_ >= 0) {
+                                numa_guard = std::make_unique<NumaSetterGuard>(numa_node_);
+                            }
+
                           if constexpr (std::is_same<faiss::IndexBinaryIVF, IndexType>::value) {
                               index_->add(rows, (const uint8_t*)data);
                           } else {

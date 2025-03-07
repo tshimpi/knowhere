@@ -40,6 +40,30 @@ knowhere_option(WITH_PROFILER "Build with profiler" OFF)
 knowhere_option(WITH_FAISS_TESTS "Build with Faiss unit tests" OFF)
 knowhere_option(WITH_LIGHT "Build with light weight version" OFF)
 
+knowhere_option(WITH_NUMA "Build with NUMA support" ON)
+if(WITH_NUMA)
+    find_package(PkgConfig QUIET)
+    if(PkgConfig_FOUND)
+        pkg_check_modules(NUMA QUIET numa)
+    endif()
+
+    if(NUMA_FOUND)
+        message(STATUS "NUMA library found via pkg-config")
+        add_definitions(-DWITH_NUMA)
+    else()
+        # Try direct find_library approach as fallback
+        find_library(NUMA_LIBRARY numa)
+        if(NUMA_LIBRARY)
+            message(STATUS "NUMA library found at ${NUMA_LIBRARY}")
+            set(NUMA_LIBRARIES ${NUMA_LIBRARY})
+            add_definitions(-DWITH_NUMA)
+        else()
+            message(WARNING "NUMA library not found, NUMA allocation features will be disabled")
+            set(WITH_NUMA OFF)
+        endif()
+    endif()
+endif()
+
 # cardinal is an enterprise vector search engine and can only be enabled for
 # cloud environment
 knowhere_option(WITH_CARDINAL "Build with cardinal" OFF)
@@ -216,6 +240,10 @@ if(WITH_CUVS)
 endif()
 target_link_libraries(knowhere PUBLIC ${KNOWHERE_LINKER_LIBS})
 target_include_directories(knowhere PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+if(WITH_NUMA AND (NUMA_FOUND OR NUMA_LIBRARY))
+    target_link_libraries(knowhere PUBLIC ${NUMA_LIBRARIES})
+endif()
 
 if(WITH_UT)
   add_subdirectory(tests/ut)

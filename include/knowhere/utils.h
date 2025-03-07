@@ -15,6 +15,8 @@
 
 #include <algorithm>
 #include <vector>
+#include <numa.h>
+#include <numaif.h>
 
 #include "knowhere/binaryset.h"
 #include "knowhere/dataset.h"

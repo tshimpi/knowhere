@@ -49,6 +49,9 @@ if(WITH_NUMA)
 
     if(NUMA_FOUND)
         message(STATUS "NUMA library found via pkg-config")
+        message(STATUS "NUMA include dirs: ${NUMA_INCLUDE_DIRS}")
+        message(STATUS "NUMA libraries: ${NUMA_LIBRARIES}")
+        include_directories(${NUMA_INCLUDE_DIRS})  # Add this line to include NUMA headers
         add_definitions(-DWITH_NUMA)
     else()
         # Try direct find_library approach as fallback
@@ -56,7 +59,17 @@ if(WITH_NUMA)
         if(NUMA_LIBRARY)
             message(STATUS "NUMA library found at ${NUMA_LIBRARY}")
             set(NUMA_LIBRARIES ${NUMA_LIBRARY})
-            add_definitions(-DWITH_NUMA)
+            
+            # Find NUMA header paths
+            find_path(NUMA_INCLUDE_DIR numa.h PATH_SUFFIXES numa)
+            if(NUMA_INCLUDE_DIR)
+                message(STATUS "NUMA headers found at ${NUMA_INCLUDE_DIR}")
+                include_directories(${NUMA_INCLUDE_DIR})  # Add this line
+                add_definitions(-DWITH_NUMA)
+            else()
+                message(FATAL_ERROR "NUMA headers not found")
+                set(WITH_NUMA OFF)
+            endif()
         else()
             message(FATAL_ERROR "NUMA library not found, NUMA allocation features will be disabled")
             set(WITH_NUMA OFF)

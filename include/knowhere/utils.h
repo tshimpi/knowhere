@@ -228,6 +228,28 @@ readBinaryPOD(R& in, T& podRef) {
     in.read((char*)&podRef, sizeof(T));
 }
 
+// Add this class to an appropriate header file
+class NumaSetterGuard {
+    public:
+        explicit NumaSetterGuard(int node) {
+            // Save current NUMA policy
+            get_mempolicy(&old_mode, old_nodemask, sizeof(old_nodemask) * 8, nullptr, 0);
+            
+            // Set new NUMA policy to specified node
+            unsigned long nodemask = 1UL << node;
+            set_mempolicy(MPOL_BIND, &nodemask, sizeof(nodemask) * 8);
+        }
+        
+        ~NumaSetterGuard() {
+            // Restore old NUMA policy
+            set_mempolicy(old_mode, old_nodemask, sizeof(old_nodemask) * 8);
+        }
+    
+    private:
+        int old_mode;
+        unsigned long old_nodemask[1]; // Adjust size based on your system
+    };
+
 // taken from
 // https://github.com/Microsoft/BLAS-on-flash/blob/master/include/utils.h
 // round up X to the nearest multiple of Y

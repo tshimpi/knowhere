@@ -55,7 +55,7 @@ class IvfConfig : public BaseConfig {
             .for_train_and_search()
             .for_iterator()
             .for_deserialize()
-            .for_deserialize_from_file();
+            .for_deserialize_from_file()
             .set_range(1, 65536);
     }
 };

@@ -611,6 +611,7 @@ class BaseConfig : public Config {
     CFG_MATERIALIZED_VIEW_SEARCH_INFO_TYPE materialized_view_search_info;
     CFG_STRING opt_fields_path;
     CFG_FLOAT iterator_refine_ratio;
+    CFG_INT numa_node;
     /**
      * k1, b, avgdl are used by BM25 metric only.
      * - k1, b, avgdl must be provided at load time.
@@ -781,6 +782,14 @@ class BaseConfig : public Config {
             .for_search()
             .for_range_search()
             .for_iterator();
+        KNOWHERE_CONFIG_DECLARE_FIELD(numa_node)
+        .set_default(1)
+        .description("numa node")
+        .for_train_and_search()
+        .for_iterator()
+        .for_deserialize()
+        .for_deserialize_from_file()
+        .set_range(1, 65536);
     }
 };
 }  // namespace knowhere

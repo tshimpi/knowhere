@@ -23,7 +23,6 @@ class IvfConfig : public BaseConfig {
     CFG_BOOL use_elkan;
     CFG_BOOL ensure_topk_full;  // only take affect on temp index(IVF_FLAT_CC) now
     CFG_INT max_empty_result_buckets;
-    CFG_INT numa_node;
     KNOHWERE_DECLARE_CONFIG(IvfConfig) {
         KNOWHERE_CONFIG_DECLARE_FIELD(nlist)
             .description("number of inverted lists.")
@@ -48,14 +47,6 @@ class IvfConfig : public BaseConfig {
             .set_default(2)
             .description("the maximum of continuous buckets with empty result")
             .for_range_search()
-            .set_range(1, 65536);
-        KNOWHERE_CONFIG_DECLARE_FIELD(numa_node)
-            .set_default(1)
-            .description("numa node")
-            .for_train_and_search()
-            .for_iterator()
-            .for_deserialize()
-            .for_deserialize_from_file()
             .set_range(1, 65536);
     }
 };

@@ -337,7 +337,6 @@ class IvfIndexNode : public IndexNode {
     }
 
  private:
-    int numa_node_ = 1;
     // only support IVFFlat,IVFFlatCC, IVFSQ, IVFSQCC and SCANN
     // iterator will own the copied_norm_query
     // TODO: iterator should copy and own query data.
@@ -413,6 +412,11 @@ MatchNlist(int64_t size, int64_t nlist) {
         LOG_KNOWHERE_WARNING_ << "Row num " << size << " match nlist " << nlist;
     }
     return nlist;
+}
+
+MatchNumaNode(int64_t numa_node) {
+    if(numa_node >= 2) return 1;
+    return numa_node;
 }
 
 int64_t
@@ -514,9 +518,13 @@ IvfIndexNode<DataType, IndexType>::TrainInternal(const DataSetPtr dataset, std::
         }
     }
 
+
     std::unique_ptr<NumaSetterGuard> numa_guard;
-    if (numa_node_ >= 0) {
-        numa_guard = std::make_unique<NumaSetterGuard>(numa_node_);
+    const IvfFlatConfig& ivf_numa_config = static_cast<const IvfFlatConfig&>(*cfg);
+    int64_t numa_node = MatchNumaNode(ivf_numa_config.numa_node.value());
+    if (numa_node >= 0) {
+        numa_guard = std::make_unique<NumaSetterGuard>(numa_node);
+        LOG_KNOWHERE_INFO_ << "Set numa node to " << numa_node;
     }
 
     std::unique_ptr<IndexType> index;
@@ -704,9 +712,12 @@ IvfIndexNode<DataType, IndexType>::Add(const DataSetPtr dataset, std::shared_ptr
                               setter = std::make_unique<ThreadPool::ScopedBuildOmpSetter>();
                           }
 
-                          std::unique_ptr<NumaSetterGuard> numa_guard;
-                            if (numa_node_ >= 0) {
-                                numa_guard = std::make_unique<NumaSetterGuard>(numa_node_);
+                            std::unique_ptr<NumaSetterGuard> numa_guard;
+                            const IvfFlatConfig& ivf_numa_config = static_cast<const IvfFlatConfig&>(*cfg);
+                            int64_t numa_node = MatchNumaNode(ivf_numa_config.numa_node.value());
+                            if (numa_node >= 0) {
+                                numa_guard = std::make_unique<NumaSetterGuard>(numa_node);
+                                LOG_KNOWHERE_INFO_ << "Set numa node to " << numa_node;
                             }
 
                           if constexpr (std::is_same<faiss::IndexBinaryIVF, IndexType>::value) {
@@ -1233,6 +1244,14 @@ IvfIndexNode<DataType, IndexType>::Deserialize(const BinarySet& binset, std::sha
         return Status::invalid_binary_set;
     }
 
+    std::unique_ptr<NumaSetterGuard> numa_guard;
+    const IvfFlatConfig& ivf_numa_config = static_cast<const IvfFlatConfig&>(*cfg);
+    int64_t numa_node = MatchNumaNode(ivf_numa_config.numa_node.value());
+    if (numa_node >= 0) {
+        numa_guard = std::make_unique<NumaSetterGuard>(numa_node);
+        LOG_KNOWHERE_INFO_ << "Set numa node to " << numa_node;
+    }
+
     MemoryIOReader reader(binary->data.get(), binary->size);
     try {
         if constexpr (std::is_same<IndexType, faiss::IndexIVFFlat>::value) {
@@ -1268,6 +1287,14 @@ template <typename DataType, typename IndexType>
 Status
 IvfIndexNode<DataType, IndexType>::DeserializeFromFile(const std::string& filename, std::shared_ptr<Config> config) {
     auto cfg = static_cast<const knowhere::BaseConfig&>(*config);
+
+    std::unique_ptr<NumaSetterGuard> numa_guard;
+    const IvfFlatConfig& ivf_numa_config = static_cast<const IvfFlatConfig&>(*cfg);
+    int64_t numa_node = MatchNumaNode(ivf_numa_config.numa_node.value());
+    if (numa_node >= 0) {
+        numa_guard = std::make_unique<NumaSetterGuard>(numa_node);
+        LOG_KNOWHERE_INFO_ << "Set numa node to " << numa_node;
+    }
 
     int io_flags = 0;
     if (cfg.enable_mmap.value()) {

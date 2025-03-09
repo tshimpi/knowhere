@@ -713,7 +713,6 @@ IvfIndexNode<DataType, IndexType>::Add(const DataSetPtr dataset, std::shared_ptr
                               setter = std::make_unique<ThreadPool::ScopedBuildOmpSetter>();
                           }
 
-                          std::unique_ptr<NumaSetterGuard> numa_guard;
                           auto cfg_numa = static_cast<const knowhere::BaseConfig&>(*cfg);
                           std::unique_ptr<NumaSetterGuard> numa_guard;
                           int64_t numa_node = MatchNumaNode(cfg_numa.numa_node.value());

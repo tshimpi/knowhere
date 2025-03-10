@@ -789,7 +789,7 @@ class BaseConfig : public Config {
         .for_iterator()
         .for_deserialize()
         .for_deserialize_from_file()
-        .set_range(1, 65536);
+        .set_range(0, 65536);
     }
 };
 }  // namespace knowhere

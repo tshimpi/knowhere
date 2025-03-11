@@ -783,13 +783,13 @@ class BaseConfig : public Config {
             .for_range_search()
             .for_iterator();
         KNOWHERE_CONFIG_DECLARE_FIELD(numa_node)
-        .set_default(1)
-        .description("numa node")
-        .for_train_and_search()
-        .for_iterator()
-        .for_deserialize()
-        .for_deserialize_from_file()
-        .set_range(0, 65536);
+            .set_default(1)
+            .description("numa node")
+            .for_train_and_search()
+            .for_iterator()
+            .for_deserialize()
+            .for_deserialize_from_file()
+            .set_range(-1, 65536);
     }
 };
 }  // namespace knowhere

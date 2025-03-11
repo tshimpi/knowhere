@@ -52,27 +52,40 @@ struct IndexDispatch<faiss::IndexIVFFlat> {
     using Tag = IVFFlatTag;
 };
 
-// Add this class to an appropriate header file
 class NumaSetterGuard {
     public:
         explicit NumaSetterGuard(int node) {
             // Save current NUMA policy
-            get_mempolicy(&old_mode, old_nodemask, (sizeof(old_nodemask) * 8) / sizeof(unsigned long), nullptr, 0);
+            get_mempolicy(&old_mode, old_nodemask, sizeof(old_nodemask) * 8 / sizeof(unsigned long), nullptr, 0);
             
-            // Set new NUMA policy to specified node
-            unsigned long nodemask = 1UL << node;
-            set_mempolicy(MPOL_BIND, &nodemask, sizeof(nodemask) * 8);
+            if (node == 2) {  // Special case: use weighted interleave between nodes 0 and 1
+                // Create node mask with bits for both NUMA nodes 0 and 1
+                unsigned long nodemask = (1UL << 0) | (1UL << 1);
+                
+                // Set weighted interleave policy across specified nodes
+                // Using the custom MPOL_WEIGHTED_INTERLEAVE policy
+                set_mempolicy(MPOL_INTERLEAVE, &nodemask, sizeof(nodemask) * 8 / sizeof(unsigned long));
+                
+                LOG_KNOWHERE_INFO_ << "Set NUMA policy to weighted interleave between nodes 0 and 1";
+            } else if (node >= 0) {  // Regular binding to a specific NUMA node
+                // Set binding policy to the specified node
+                unsigned long nodemask = 1UL << node;
+                set_mempolicy(MPOL_BIND, &nodemask, sizeof(nodemask) * 8 / sizeof(unsigned long));
+                
+                LOG_KNOWHERE_INFO_ << "Set NUMA binding to node " << node;
+            }
+            // If node < 0, don't change the policy (default system behavior)
         }
         
         ~NumaSetterGuard() {
-            // Restore old NUMA policy
-            set_mempolicy(old_mode, old_nodemask, (sizeof(old_nodemask) * 8) / sizeof(unsigned long));
+            // Restore original policy
+            set_mempolicy(old_mode, old_nodemask, sizeof(old_nodemask) * 8 / sizeof(unsigned long));
         }
-    
+        
     private:
         int old_mode;
         unsigned long old_nodemask[1]; // Adjust size based on your system
-    };
+};
 
 template <typename DataType, typename IndexType>
 class IvfIndexNode : public IndexNode {
@@ -416,7 +429,7 @@ MatchNlist(int64_t size, int64_t nlist) {
 
 inline int64_t
 MatchNumaNode(int64_t numa_node) {
-    if(numa_node >= 2) return 1;
+    if(numa_node > 2) return 0;
     return numa_node;
 }
 
